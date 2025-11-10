@@ -83,9 +83,10 @@ class Blockchain:
 
     def mine_pending_transactions(self, miner_address: str) -> Optional[Block]:
         """Mine a new block with pending transactions."""
-        if not self.pending_transactions:
-            self.logger.debug("No pending transactions to mine")
-            return None
+        # Allow mining even with no pending transactions for mining rewards
+        # if not self.pending_transactions:
+        #     self.logger.debug("No pending transactions to mine")
+        #     return None
 
         # Update mining reward based on block height
         self.mining_reward = self.pow.get_mining_reward(len(self.chain))

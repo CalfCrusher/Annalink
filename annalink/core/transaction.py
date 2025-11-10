@@ -122,13 +122,22 @@ class Transaction:
 
     def is_valid(self) -> bool:
         """Check if transaction is valid."""
+        # Coinbase transactions (mining rewards) have special validation
+        is_coinbase = self.sender == "0" * 34
+
         # Basic validation
-        if self.amount <= 0 or self.fee < 0:
+        if self.amount < 0 or self.fee < 0:  # Allow amount=0 for coinbase
             return False
         if not self.sender or not self.receiver:
             return False
         if len(self.sender) != 34 or len(self.receiver) != 34:  # Base58 address length
             return False
+
+        # Skip signature validation for coinbase transactions
+        if is_coinbase:
+            return True
+
+        # Regular transaction validation
         if not self.public_key:
             return False
         if not self.verify_signature():

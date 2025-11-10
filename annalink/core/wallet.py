@@ -33,6 +33,12 @@ class Wallet:
         self.public_key = self.private_key.verifying_key
         self.address = self._generate_address()
 
+    @property
+    def public_key_hex(self) -> str:
+        """Get the public key as hex string."""
+        pub_key_bytes = b'\x04' + self.public_key.to_string()
+        return pub_key_bytes.hex()
+
     def _generate_address(self) -> str:
         """Generate Base58 address from public key."""
         # Get public key bytes
@@ -131,7 +137,7 @@ class Wallet:
     def save_to_file(self, filepath: str, password: Optional[str] = None) -> None:
         """Save wallet to encrypted file."""
         wallet_data = {
-            'private_key': self.private_key.to_secret_exponent().to_bytes(32, 'big').hex(),
+            'private_key': self.private_key.privkey.secret_multiplier.to_bytes(32, 'big').hex(),
             'address': self.address
         }
 

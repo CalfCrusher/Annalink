@@ -52,7 +52,8 @@ def send_transaction(args) -> None:
         sender=wallet.address,
         receiver=args.to,
         amount=args.amount,
-        fee=args.fee or 0.0
+        fee=args.fee or 0.0,
+        public_key=wallet.public_key_hex
     )
 
     # Sign transaction
@@ -61,14 +62,20 @@ def send_transaction(args) -> None:
         'receiver': tx.receiver,
         'amount': tx.amount,
         'fee': tx.fee,
-        'timestamp': tx.timestamp
+        'timestamp': tx.timestamp,
+        'public_key': tx.public_key
     }
     tx.signature = wallet.sign_transaction(tx_data)
 
     # Add to blockchain
     if node.blockchain.add_transaction(tx):
         print(f"Transaction sent: {tx.txid}")
-        # In real implementation, broadcast to network
+        # Mine the transaction immediately for testing
+        block = node.mine_block(wallet.address)
+        if block:
+            print(f"Transaction mined in block {block.index}")
+        else:
+            print("Failed to mine transaction")
     else:
         print("Failed to send transaction")
 
@@ -88,7 +95,8 @@ def mine_blocks(args) -> None:
                 print(f"Reward: {node.blockchain.mining_reward}")
             else:
                 print("No transactions to mine")
-                asyncio.sleep(1)
+                import time
+                time.sleep(1)  # Use synchronous sleep
     except KeyboardInterrupt:
         print("Mining stopped")
 
