@@ -24,17 +24,67 @@ A production-ready custom blockchain implementation built from scratch.
 
 ### CLI
 
+The Annalink CLI provides a complete interface for interacting with the blockchain:
+
 ```bash
+# Get help
 annalink-cli --help
+
+# Create a new wallet
+annalink-cli create-wallet [--save WALLET_FILE]
+
+# Send a transaction
+annalink-cli send --wallet-file WALLET_FILE --to RECIPIENT_ADDRESS --amount AMOUNT [--fee FEE]
+
+# Mine blocks (requires wallet for mining rewards)
+annalink-cli mine --wallet-file WALLET_FILE
+
+# Check wallet balance
+annalink-cli balance --wallet-file WALLET_FILE
+
+# View blockchain information
+annalink-cli blockchain
+
+# Start a blockchain node
+annalink-cli node [--host HOST] [--port PORT]
+```
+
+#### Examples
+
+```bash
+# Create and save a wallet
+annalink-cli create-wallet --save my_wallet.json
+
+# Send 10 coins to an address
+annalink-cli send --wallet-file my_wallet.json --to 1ABC... --amount 10
+
+# Start mining with your wallet
+annalink-cli mine --wallet-file my_wallet.json
+
+# Check your balance
+annalink-cli balance --wallet-file my_wallet.json
+
+# Start a node on port 5001
+annalink-cli node --port 5001
+
+# View blockchain status
+annalink-cli blockchain
 ```
 
 ### REST API
 
-Start the node with API:
+Start the node with REST API:
 
 ```bash
 python -m annalink.api.rest
 ```
+
+The API will be available at `http://localhost:8000` with endpoints for:
+- `/blockchain` - Get blockchain info
+- `/transactions` - Send transactions
+- `/mine` - Mine blocks
+- `/wallet/balance` - Check balance
+- `/health` - Health check
 
 ## Documentation
 
