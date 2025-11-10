@@ -111,10 +111,9 @@ def show_blockchain(args) -> None:
 
 def start_node(args) -> None:
     """Start blockchain node."""
-    config = load_config()
     node = BlockchainNode(
-        host=config.get('network', {}).get('host', '0.0.0.0'),
-        port=config.get('network', {}).get('port', 8333)
+        host=args.host,
+        port=args.port
     )
 
     async def run_node():
@@ -162,6 +161,8 @@ def main() -> None:
 
     # Start node
     node_parser = subparsers.add_parser('node', help='Start blockchain node')
+    node_parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
+    node_parser.add_argument('--port', type=int, default=8333, help='Port to bind to (default: 8333)')
     node_parser.set_defaults(func=start_node)
 
     args = parser.parse_args()

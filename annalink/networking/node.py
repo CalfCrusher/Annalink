@@ -226,8 +226,8 @@ class BlockchainNode:
 
     async def discover_peers(self) -> None:
         """Discover peers from seed nodes."""
-        # This would load from config
-        seed_nodes = ["localhost:8334"]  # Example
+        # Load seed nodes from config or use empty list for now
+        seed_nodes = []  # TODO: Load from config
         self.peer_manager.discover_peers(seed_nodes)
 
         # Connect to discovered peers
