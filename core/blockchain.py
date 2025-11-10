@@ -58,8 +58,17 @@ class Blockchain:
         if not transaction.is_valid():
             return False
 
-        # Check for double spending (simplified - in real impl, check UTXO)
-        # For now, just add to mempool
+        # Check for sufficient balance
+        balance = self.get_balance(transaction.sender)
+        if balance < transaction.amount + transaction.fee:
+            return False
+
+        # Check for double spending in mempool
+        for pending_tx in self.pending_transactions:
+            if pending_tx.sender == transaction.sender:
+                # Simplified: don't allow multiple pending tx from same sender
+                return False
+
         self.pending_transactions.append(transaction)
         return True
 
