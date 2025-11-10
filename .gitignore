@@ -23,4 +23,4 @@ coverage.xml
 *.db
 *.sqlite
 config/local.yaml
-node_data/
+node_data/*.json
