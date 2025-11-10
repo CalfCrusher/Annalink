@@ -70,11 +70,17 @@ class Wallet:
         decoded = base58.b58decode(wif)
 
         # Remove checksum (last 4 bytes)
-        private_key_bytes = decoded[:-4]
+        data = decoded[:-4]
 
-        # Remove version byte if present
-        if len(private_key_bytes) == 33:
-            private_key_bytes = private_key_bytes[1:]
+        # Check if compressed (has compression flag)
+        compressed = len(data) == 34 and data[-1] == 0x01
+
+        # Remove version byte
+        private_key_bytes = data[1:]
+
+        # Remove compression flag if present
+        if compressed:
+            private_key_bytes = private_key_bytes[:-1]
 
         # Create private key
         private_key_int = int.from_bytes(private_key_bytes, 'big')

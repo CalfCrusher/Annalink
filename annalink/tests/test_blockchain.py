@@ -3,9 +3,9 @@ Tests for Annalink blockchain core components.
 """
 
 import pytest
-from Annalink.core.blockchain import Blockchain
-from Annalink.core.transaction import Transaction
-from Annalink.core.wallet import Wallet
+from annalink.core.blockchain import Blockchain
+from annalink.core.transaction import Transaction
+from annalink.core.wallet import Wallet
 
 
 class TestBlockchain:
