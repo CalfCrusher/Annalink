@@ -13,7 +13,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "annalink-cli=api.cli:main",
+            "annalink-cli=annalink.api.cli:main",
         ],
     },
     author="Christopher",

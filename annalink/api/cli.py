@@ -19,7 +19,7 @@ def create_wallet(args) -> None:
     wallet = Wallet.generate_wallet()
     print(f"New wallet created!")
     print(f"Address: {wallet.address}")
-    print(f"Private Key: {wallet.private_key.to_secret_exponent().to_bytes(32, 'big').hex()}")
+    print(f"Private Key: {wallet.private_key.privkey.secret_multiplier.to_bytes(32, 'big').hex()}")
 
     if args.save:
         filepath = args.save
