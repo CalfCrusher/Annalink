@@ -9,6 +9,7 @@ import time
 from typing import List, Optional
 from .block import Block
 from .transaction import Transaction
+from .consensus import ProofOfWork
 
 
 class Blockchain:
@@ -17,14 +18,14 @@ class Blockchain:
 
     Attributes:
         chain (List[Block]): List of blocks in the chain
-        difficulty (int): Current mining difficulty
+        pow (ProofOfWork): Proof-of-work consensus instance
         pending_transactions (List[Transaction]): Mempool of pending transactions
         mining_reward (float): Reward for mining a block
     """
 
     def __init__(self, difficulty: int = 4, mining_reward: float = 50.0):
         self.chain: List[Block] = []
-        self.difficulty = difficulty
+        self.pow = ProofOfWork(difficulty=difficulty)
         self.pending_transactions: List[Transaction] = []
         self.mining_reward = mining_reward
 
@@ -40,7 +41,7 @@ class Blockchain:
             fee=0.0
         )
         genesis_block = Block(0, [genesis_tx], "0")
-        genesis_block.mine_block(self.difficulty)
+        self.pow.mine_block(genesis_block)
         self.chain.append(genesis_block)
 
     def get_latest_block(self) -> Block:
@@ -62,6 +63,9 @@ class Blockchain:
         if not self.pending_transactions:
             return None
 
+        # Update mining reward based on block height
+        self.mining_reward = self.pow.get_mining_reward(len(self.chain))
+
         # Add coinbase transaction
         coinbase_tx = Transaction(
             sender="0" * 34,
@@ -75,16 +79,21 @@ class Blockchain:
             index=len(self.chain),
             transactions=[coinbase_tx] + self.pending_transactions,
             previous_hash=self.get_latest_block().hash,
-            difficulty=self.difficulty
+            difficulty=self.pow.difficulty
         )
 
         # Mine the block
-        new_block.mine_block(self.difficulty)
+        try:
+            self.pow.mine_block(new_block)
+        except TimeoutError:
+            return None
 
         # Add to chain
         if self.add_block(new_block):
             # Clear mempool except coinbase
             self.pending_transactions = []
+            # Adjust difficulty
+            self.pow.difficulty = self.pow.calculate_difficulty(self.chain)
             return new_block
         return None
 
@@ -115,19 +124,3 @@ class Blockchain:
                 if tx.receiver == address:
                     balance += tx.amount
         return balance
-
-    def adjust_difficulty(self) -> None:
-        """Adjust mining difficulty based on block time (simplified)."""
-        # This is a basic implementation - real adjustment would be more complex
-        if len(self.chain) % 10 == 0:  # Every 10 blocks
-            # Calculate average block time
-            if len(self.chain) > 10:
-                recent_blocks = self.chain[-10:]
-                total_time = sum(b.timestamp for b in recent_blocks[1:]) - sum(b.timestamp for b in recent_blocks[:-1])
-                avg_time = total_time / 9
-                target_time = 600  # 10 minutes
-
-                if avg_time < target_time:
-                    self.difficulty += 1
-                elif avg_time > target_time and self.difficulty > 1:
-                    self.difficulty -= 1
