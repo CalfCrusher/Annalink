@@ -118,7 +118,7 @@ class BlockchainDatabase:
     def load_all_blocks(self) -> List[Block]:
         """Load all blocks from the database."""
         cursor = self.conn.cursor()
-        cursor.execute('SELECT data FROM blocks ORDER BY index')
+        cursor.execute('SELECT data FROM blocks ORDER BY block_index')
         rows = cursor.fetchall()
 
         blocks = []

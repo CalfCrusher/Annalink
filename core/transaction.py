@@ -25,16 +25,18 @@ class Transaction:
         timestamp (float): Unix timestamp
         signature (str): Hex encoded signature
         txid (str): Transaction ID (hash)
+        public_key (str): Hex encoded sender public key
     """
 
     def __init__(self, sender: str, receiver: str, amount: float, fee: float = 0.0,
-                 timestamp: float = None, signature: str = None):
+                 timestamp: float = None, signature: str = None, public_key: str = None):
         self.sender = sender
         self.receiver = receiver
         self.amount = amount
         self.fee = fee
         self.timestamp = timestamp or time.time()
         self.signature = signature
+        self.public_key = public_key
         self.txid = self.calculate_txid()
 
     def calculate_txid(self) -> str:
@@ -44,7 +46,8 @@ class Transaction:
             'receiver': self.receiver,
             'amount': self.amount,
             'fee': self.fee,
-            'timestamp': self.timestamp
+            'timestamp': self.timestamp,
+            'public_key': self.public_key
         }
         tx_string = json.dumps(tx_data, sort_keys=True)
         return hashlib.sha256(tx_string.encode()).hexdigest()
@@ -58,7 +61,8 @@ class Transaction:
             'fee': self.fee,
             'timestamp': self.timestamp,
             'signature': self.signature,
-            'txid': self.txid
+            'txid': self.txid,
+            'public_key': self.public_key
         }
 
     @classmethod
@@ -70,17 +74,22 @@ class Transaction:
             amount=data['amount'],
             fee=data.get('fee', 0.0),
             timestamp=data['timestamp'],
-            signature=data.get('signature')
+            signature=data.get('signature'),
+            public_key=data.get('public_key')
         )
 
     def sign(self, private_key: SigningKey) -> None:
         """Sign the transaction with a private key."""
+        if not self.public_key:
+            self.public_key = private_key.verifying_key.to_string().hex()
+
         tx_data = {
             'sender': self.sender,
             'receiver': self.receiver,
             'amount': self.amount,
             'fee': self.fee,
-            'timestamp': self.timestamp
+            'timestamp': self.timestamp,
+            'public_key': self.public_key
         }
         tx_string = json.dumps(tx_data, sort_keys=True)
         signature = private_key.sign(tx_string.encode())
@@ -88,13 +97,11 @@ class Transaction:
 
     def verify_signature(self) -> bool:
         """Verify the transaction signature."""
-        if not self.signature:
+        if not self.signature or not self.public_key:
             return False
 
-        # Decode sender address to get public key
         try:
-            pub_key_bytes = base58.b58decode(self.sender)
-            pub_key = VerifyingKey.from_string(pub_key_bytes[1:], curve=SECP256k1)  # Skip version byte
+            pub_key = VerifyingKey.from_string(bytes.fromhex(self.public_key), curve=SECP256k1)
         except:
             return False
 
@@ -103,7 +110,8 @@ class Transaction:
             'receiver': self.receiver,
             'amount': self.amount,
             'fee': self.fee,
-            'timestamp': self.timestamp
+            'timestamp': self.timestamp,
+            'public_key': self.public_key
         }
         tx_string = json.dumps(tx_data, sort_keys=True)
 
@@ -120,6 +128,8 @@ class Transaction:
         if not self.sender or not self.receiver:
             return False
         if len(self.sender) != 34 or len(self.receiver) != 34:  # Base58 address length
+            return False
+        if not self.public_key:
             return False
         if not self.verify_signature():
             return False
