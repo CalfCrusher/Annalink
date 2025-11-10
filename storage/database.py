@@ -35,7 +35,7 @@ class BlockchainDatabase:
         # Blocks table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS blocks (
-                index INTEGER PRIMARY KEY,
+                block_index INTEGER PRIMARY KEY,
                 timestamp REAL,
                 previous_hash TEXT,
                 nonce INTEGER,
@@ -56,7 +56,7 @@ class BlockchainDatabase:
                 timestamp REAL,
                 signature TEXT,
                 block_index INTEGER,
-                FOREIGN KEY (block_index) REFERENCES blocks (index)
+                FOREIGN KEY (block_index) REFERENCES blocks (block_index)
             )
         ''')
 
@@ -78,7 +78,7 @@ class BlockchainDatabase:
         block_data = json.dumps(block.to_dict())
         cursor.execute('''
             INSERT OR REPLACE INTO blocks
-            (index, timestamp, previous_hash, nonce, hash, difficulty, data)
+            (block_index, timestamp, previous_hash, nonce, hash, difficulty, data)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (block.index, block.timestamp, block.previous_hash, block.nonce,
               block.hash, block.difficulty, block_data))
@@ -97,7 +97,7 @@ class BlockchainDatabase:
     def load_block(self, index: int) -> Optional[Block]:
         """Load a block from the database."""
         cursor = self.conn.cursor()
-        cursor.execute('SELECT data FROM blocks WHERE index = ?', (index,))
+        cursor.execute('SELECT data FROM blocks WHERE block_index = ?', (index,))
         row = cursor.fetchone()
 
         if row:
@@ -108,7 +108,7 @@ class BlockchainDatabase:
     def load_latest_block(self) -> Optional[Block]:
         """Load the latest block from the database."""
         cursor = self.conn.cursor()
-        cursor.execute('SELECT MAX(index) FROM blocks')
+        cursor.execute('SELECT MAX(block_index) FROM blocks')
         max_index = cursor.fetchone()[0]
 
         if max_index is not None:

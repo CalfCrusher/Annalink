@@ -59,10 +59,8 @@ class Wallet:
     @classmethod
     def from_private_key_hex(cls, private_key_hex: str) -> 'Wallet':
         """Create wallet from hex private key."""
-        private_key = SigningKey.from_secret_exponent(
-            int(private_key_hex, 16),
-            curve=SECP256k1
-        )
+        private_key_int = int(private_key_hex, 16)
+        private_key = SigningKey.from_secret_exponent(private_key_int, curve=SECP256k1)
         return cls(private_key)
 
     @classmethod
@@ -79,16 +77,14 @@ class Wallet:
             private_key_bytes = private_key_bytes[1:]
 
         # Create private key
-        private_key = SigningKey.from_secret_exponent(
-            int.from_bytes(private_key_bytes, 'big'),
-            curve=SECP256k1
-        )
+        private_key_int = int.from_bytes(private_key_bytes, 'big')
+        private_key = SigningKey.from_secret_exponent(private_key_int, curve=SECP256k1)
         return cls(private_key)
 
     def to_wif(self, compressed: bool = True) -> str:
         """Export private key to Wallet Import Format (WIF)."""
         # Get private key bytes
-        private_key_bytes = self.private_key.to_secret_exponent().to_bytes(32, 'big')
+        private_key_bytes = self.private_key.privkey.secret_multiplier.to_bytes(32, 'big')
 
         # Add compression flag if compressed
         if compressed:

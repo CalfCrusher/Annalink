@@ -1,0 +1,2 @@
+[console_scripts]
+annalink-cli = api.cli:main
