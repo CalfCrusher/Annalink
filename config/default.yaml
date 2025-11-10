@@ -1,0 +1,27 @@
+# Annalink Blockchain Configuration
+
+network:
+  host: "0.0.0.0"
+  port: 8333
+  max_peers: 10
+  seed_nodes:
+    - "seed.annalink.net:8333"
+
+consensus:
+  difficulty_target: 4  # Number of leading zeros for PoW
+  block_time: 600  # seconds
+  max_block_size: 1000000  # bytes
+
+wallet:
+  key_dir: "wallets/"
+
+storage:
+  db_path: "blockchain.db"
+
+api:
+  rest_port: 8080
+  enable_cors: true
+
+logging:
+  level: "INFO"
+  file: "annalink.log"
