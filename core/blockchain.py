@@ -10,6 +10,7 @@ from typing import List, Optional
 from .block import Block
 from .transaction import Transaction
 from .consensus import ProofOfWork
+from ..storage.database import BlockchainDatabase
 
 
 class Blockchain:
@@ -17,20 +18,23 @@ class Blockchain:
     Represents the blockchain data structure.
 
     Attributes:
-        chain (List[Block]): List of blocks in the chain
+        chain (List[Block]): List of blocks in the chain (loaded on demand)
         pow (ProofOfWork): Proof-of-work consensus instance
         pending_transactions (List[Transaction]): Mempool of pending transactions
         mining_reward (float): Reward for mining a block
+        db (BlockchainDatabase): Database instance for persistence
     """
 
-    def __init__(self, difficulty: int = 4, mining_reward: float = 50.0):
-        self.chain: List[Block] = []
+    def __init__(self, difficulty: int = 4, mining_reward: float = 50.0, db_path: str = "blockchain.db"):
         self.pow = ProofOfWork(difficulty=difficulty)
         self.pending_transactions: List[Transaction] = []
         self.mining_reward = mining_reward
+        self.db = BlockchainDatabase(db_path)
 
-        # Create genesis block
-        self.create_genesis_block()
+        # Load existing chain or create genesis
+        self.chain = self.db.load_all_blocks()
+        if not self.chain:
+            self.create_genesis_block()
 
     def create_genesis_block(self) -> None:
         """Create and add the genesis block."""
@@ -43,6 +47,7 @@ class Blockchain:
         genesis_block = Block(0, [genesis_tx], "0")
         self.pow.mine_block(genesis_block)
         self.chain.append(genesis_block)
+        self.db.save_block(genesis_block)
 
     def get_latest_block(self) -> Block:
         """Get the latest block in the chain."""
@@ -101,6 +106,7 @@ class Blockchain:
         """Add a block to the chain if valid."""
         if block.is_valid(self.get_latest_block()):
             self.chain.append(block)
+            self.db.save_block(block)
             return True
         return False
 
@@ -124,3 +130,7 @@ class Blockchain:
                 if tx.receiver == address:
                     balance += tx.amount
         return balance
+
+    def close(self) -> None:
+        """Close database connection."""
+        self.db.close()
