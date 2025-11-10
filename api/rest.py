@@ -227,11 +227,15 @@ async def mine_block(miner_address: str):
     }
 
 
-@app.get("/peers")
-async def get_peers():
-    """Get connected peers."""
-    peers = node.peer_manager.get_connected_peers()
-    return [{"host": peer.host, "port": peer.port} for peer in peers]
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "blocks": len(blockchain.chain),
+        "peers": len(node.peer_manager.get_connected_peers()),
+        "pending_tx": len(blockchain.pending_transactions)
+    }
 
 
 if __name__ == "__main__":
