@@ -97,3 +97,48 @@ Run tests: `pytest`
 ## License
 
 MIT
+
+## Disclaimer & Limitations
+
+This project is a functional, educational blockchain intended for small, trusted networks and prototyping. It is not a production public cryptocurrency. Use at your own risk.
+
+- Scope and intended use
+	- Designed for small, cooperative deployments: roughly 50–200 users and ~500–2,000 transactions/day across 5–10 nodes.
+	- Excellent for learning, demos, private pilots, and internal apps. Not suitable for adversarial public environments or high-value transactions.
+
+- Consensus and protocol
+	- Proof‑of‑Work without slashing/finality; vulnerable to 51% and selfish‑mining attacks.
+	- No formal fork resolution/longest‑chain arbitration beyond basic validation; chain splits can persist without manual intervention.
+	- No protocol upgrade/feature negotiation mechanism (no versioned hard/soft‑fork orchestration).
+
+- Networking
+	- Basic TCP P2P; limited peer discovery; no seed list bootstrap, NAT traversal guarantees, message signing, or encryption between peers.
+	- No rate limiting or DoS protection; message size is naive; no compression.
+
+- Storage and performance
+	- SQLite single‑writer storage; no replication, sharding, or pruning.
+	- Full chain loaded in memory at startup; balance calculation scans the chain (O(n²) pattern across blocks×txns); will slow as data grows.
+	- No Merkle proofs; blocks reference transactions by ID only for hashing.
+
+- Wallets and security
+	- Keys are ECDSA (secp256k1) with Base58 addresses; no multi‑sig, hardware wallet support, or HD wallets.
+	- Wallet export files are JSON; optional password uses simple XOR and is not production‑grade encryption.
+	- CLI may print private keys; ensure safe operational practices; never commit wallet files (JSON is ignored via .gitignore).
+	- Not quantum‑resistant; cryptographic assumptions may degrade over time.
+
+- Economics
+	- Fixed PoW reward schedule with halvings; no fee market or mempool prioritization; miner incentives may degrade as rewards halve.
+
+- Monitoring & ops
+	- Basic logging and health endpoints only; no metrics, alerting, backups, or automated recovery.
+
+- Maintenance expectations (honest outlook)
+	- Without maintenance: 2–5 years before dependency/security rot, performance degradation, or operational drift cause failures.
+	- Minimal maintenance: 5–15 years (periodic library upgrades, backups, and occasional fixes).
+	- Active stewardship: 20–50 years with planned upgrades (DB indexing/UTXO set, fork resolution, peer bootstrap, security hardening).
+	- Example recurring tasks: dependency updates, database backups, security patches, seed peer management, and incident response.
+
+- Known missing features for public‑grade deployments
+	- Robust fork resolution/longest chain, finalized consensus, peer authentication & encryption, seed/bootstrap services, DoS protections, UTXO/state index, pruning, fee market, comprehensive API auth/rate‑limits, CI/CD, observability, and formal audits.
+
+By using this software you acknowledge these limitations and accept all risks. Contributions and issues are welcome to evolve the project.
