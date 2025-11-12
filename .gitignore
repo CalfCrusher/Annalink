@@ -24,3 +24,6 @@ coverage.xml
 *.sqlite
 config/local.yaml
 node_data/*.json
+
+# Ignore all JSON files (e.g., wallet exports like my_wallet.json, recipient_wallet.json)
+*.json
