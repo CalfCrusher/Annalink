@@ -134,6 +134,7 @@ def start_node(args) -> None:
                 peer_host, peer_port = args.peer.split(':')
                 peer = Peer(peer_host, int(peer_port))
                 print(f"Connecting to peer {peer}...")
+                node.peer_manager.add_peer(peer)
                 await node.connect_to_peer(peer)
                 print(f"Connected to peer {peer}")
             except Exception as e:

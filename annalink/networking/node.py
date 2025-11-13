@@ -219,6 +219,9 @@ class BlockchainNode:
         try:
             reader, writer = await asyncio.open_connection(peer.host, peer.port)
 
+            # Mark peer as connected
+            self.peer_manager.update_peer_status(peer, True)
+            
             # Send handshake
             handshake = {
                 'type': MessageType.HANDSHAKE,
@@ -236,6 +239,7 @@ class BlockchainNode:
 
         except Exception as e:
             self.logger.error(f"Failed to connect to peer {peer}: {e}")
+            self.peer_manager.update_peer_status(peer, False)
 
     async def discover_peers(self) -> None:
         """Discover peers from seed nodes."""
@@ -253,7 +257,10 @@ class BlockchainNode:
         while True:
             await asyncio.sleep(10)  # Sync every 10 seconds
 
-            for peer in self.peer_manager.get_connected_peers():
+            connected_peers = self.peer_manager.get_connected_peers()
+            self.logger.info(f"Syncing with {len(connected_peers)} connected peers")
+            
+            for peer in connected_peers:
                 # Request blocks if behind
                 if peer.connected:
                     try:
@@ -266,6 +273,7 @@ class BlockchainNode:
                                 'start_height': len(self.blockchain.chain)
                             }
                         }
+                        self.logger.info(f"Requesting blocks from {peer} starting at height {len(self.blockchain.chain)}")
                         await self.send_message(request, writer)
                         
                         # Wait for response
