@@ -125,28 +125,39 @@ def start_node(args) -> None:
     )
 
     async def run_node():
-        await node.start()
-        
-        # Connect to peer if specified
-        if args.peer:
-            from ..networking.peer import Peer
-            try:
-                peer_host, peer_port = args.peer.split(':')
-                peer = Peer(peer_host, int(peer_port))
-                print(f"Connecting to peer {peer}...")
-                node.peer_manager.add_peer(peer)
-                await node.connect_to_peer(peer)
-                print(f"Connected to peer {peer}")
-            except Exception as e:
-                print(f"Failed to connect to peer: {e}")
-        
         try:
+            await node.start()
+            
+            # Connect to peer if specified
+            if args.peer:
+                from ..networking.peer import Peer
+                try:
+                    peer_host, peer_port = args.peer.split(':')
+                    peer = Peer(peer_host, int(peer_port))
+                    print(f"Connecting to peer {peer}...")
+                    node.peer_manager.add_peer(peer)
+                    await node.connect_to_peer(peer)
+                    print(f"Connected to peer {peer}")
+                except Exception as e:
+                    print(f"Failed to connect to peer: {e}")
+            
+            print("Node running. Press Ctrl+C to stop.")
+            
+            # Keep running until interrupted
             while True:
                 await asyncio.sleep(1)
+                
         except KeyboardInterrupt:
+            pass
+        finally:
+            print("\nShutting down node...")
             await node.stop()
+            print("Node stopped gracefully.")
 
-    asyncio.run(run_node())
+    try:
+        asyncio.run(run_node())
+    except KeyboardInterrupt:
+        print("\nShutdown complete.")
 
 
 def main() -> None:
