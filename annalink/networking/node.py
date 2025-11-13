@@ -156,22 +156,42 @@ class BlockchainNode:
         """Handle received blocks."""
         blocks_data = data.get('blocks', [])
         if not blocks_data:
+            self.logger.debug("Received empty blocks response")
             return
         
         # Convert to Block objects
         received_blocks = [Block.from_dict(block_data) for block_data in blocks_data]
         
-        # If we received multiple blocks, try chain replacement
-        if len(received_blocks) > 1:
-            # Build potential new chain
-            new_chain = self.blockchain.chain[:received_blocks[0].index] + received_blocks
-            if self.blockchain.replace_chain(new_chain):
-                self.logger.info(f"Chain replaced with {len(new_chain)} blocks")
-        else:
-            # Single block, try to add normally
-            block = received_blocks[0]
-            if self.blockchain.add_block(block):
-                self.logger.info(f"Added block {block.index} from peer")
+        self.logger.info(f"Received {len(received_blocks)} blocks (indices {received_blocks[0].index}-{received_blocks[-1].index})")
+        
+        # If we received multiple blocks and they extend our chain
+        if len(received_blocks) > 0:
+            first_block_index = received_blocks[0].index
+            
+            # If these blocks would extend our current chain
+            if first_block_index >= len(self.blockchain.chain):
+                # Try adding them sequentially
+                for block in received_blocks:
+                    if not self.blockchain.add_block(block):
+                        self.logger.warning(f"Failed to add block {block.index}")
+                        break
+            # If we received blocks that overlap with our chain, try chain replacement
+            elif first_block_index < len(self.blockchain.chain) and len(received_blocks) > 1:
+                # Build the complete new chain: our existing blocks + received blocks
+                last_received_index = received_blocks[-1].index
+                if last_received_index >= len(self.blockchain.chain):
+                    # The received chain is longer, try to replace
+                    new_chain = self.blockchain.chain[:first_block_index] + received_blocks
+                    if self.blockchain.replace_chain(new_chain):
+                        self.logger.info(f"Chain replaced with {len(new_chain)} blocks")
+                    else:
+                        self.logger.warning("Failed to replace chain")
+            else:
+                # Single block or blocks we already have
+                for block in received_blocks:
+                    if block.index >= len(self.blockchain.chain):
+                        if self.blockchain.add_block(block):
+                            self.logger.info(f"Added block {block.index} from peer")
 
     async def handle_new_transaction(self, data: Dict[str, Any]) -> None:
         """Handle new transaction."""
