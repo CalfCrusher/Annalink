@@ -91,10 +91,9 @@ class BlockchainNode:
         peer_addr = writer.get_extra_info('peername')
         self.logger.info(f"Incoming connection from {peer_addr[0]}:{peer_addr[1]}")
         
-        # Add this peer so we can sync from them later
-        peer = Peer(peer_addr[0], peer_addr[1])
-        self.peer_manager.add_peer(peer)
-        self.peer_manager.update_peer_status(peer, True)
+        # Will add peer after handshake when we know their real listening port
+        peer_host = peer_addr[0]
+        peer_port = None
 
         try:
             while True:
@@ -106,11 +105,20 @@ class BlockchainNode:
                 data = message.get('data', {})
 
                 if msg_type == MessageType.HANDSHAKE:
+                    # Get the peer's actual listening port from handshake
+                    peer_port = data.get('port')
+                    if peer_port:
+                        peer = Peer(peer_host, peer_port)
+                        self.peer_manager.add_peer(peer)
+                        self.peer_manager.update_peer_status(peer, True)
+                        self.logger.info(f"Added peer {peer_host}:{peer_port} to peer list")
+                    
                     response = {
                         'type': MessageType.HANDSHAKE,
                         'data': {
                             'version': '1.0',
-                            'best_height': len(self.blockchain.chain) - 1
+                            'best_height': len(self.blockchain.chain) - 1,
+                            'port': self.port
                         }
                     }
                     await self.send_message(writer, response)
@@ -134,7 +142,8 @@ class BlockchainNode:
             self.logger.debug(f"Connection handler error: {e}")
         finally:
             # Mark peer as disconnected but keep in peer list for future sync
-            if 'peer' in locals():
+            if peer_port:
+                peer = Peer(peer_host, peer_port)
                 self.peer_manager.update_peer_status(peer, False)
             writer.close()
             await writer.wait_closed()
@@ -152,7 +161,8 @@ class BlockchainNode:
                 'type': MessageType.HANDSHAKE,
                 'data': {
                     'version': '1.0',
-                    'best_height': len(self.blockchain.chain) - 1
+                    'best_height': len(self.blockchain.chain) - 1,
+                    'port': self.port
                 }
             }
             await self.send_message(writer, handshake)
