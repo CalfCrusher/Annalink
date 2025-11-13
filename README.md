@@ -16,9 +16,32 @@ A production-ready custom blockchain implementation built from scratch.
 
 ## Installation
 
+Prerequisites: Python 3.8+ and a virtual environment. The commands below assume bash/zsh on macOS/Linux.
+
 1. Clone the repository
-2. Install dependencies: `pip install -r requirements.txt`
-3. Run setup: `python setup.py develop`
+2. Create and activate a virtual environment
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+3. Upgrade build tools and install dependencies
+
+```bash
+python -m pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+```
+
+4. Install Annalink in editable mode (recommended)
+
+```bash
+pip install -e .
+```
+
+Notes
+- Editable install is the modern replacement for `python setup.py develop`.
+- If you still prefer the legacy command, ensure `setuptools` is installed first: `pip install setuptools wheel`.
 
 ## Usage
 
