@@ -238,13 +238,33 @@ class BlockchainNode:
     async def sync_with_peers(self) -> None:
         """Sync blockchain with peers."""
         while True:
-            await asyncio.sleep(60)  # Sync every minute
+            await asyncio.sleep(10)  # Sync every 10 seconds
 
             for peer in self.peer_manager.get_connected_peers():
                 # Request blocks if behind
                 if peer.connected:
-                    # This would check peer's best height and request missing blocks
-                    pass
+                    try:
+                        reader, writer = await asyncio.open_connection(peer.host, peer.port)
+                        
+                        # Request blocks starting from our current height
+                        request = {
+                            'type': MessageType.GET_BLOCKS,
+                            'data': {
+                                'start_height': len(self.blockchain.chain)
+                            }
+                        }
+                        await self.send_message(request, writer)
+                        
+                        # Wait for response
+                        data = await asyncio.wait_for(reader.read(1024000), timeout=5.0)
+                        if data:
+                            response = json.loads(data.decode())
+                            await self.handle_message(response, writer)
+                        
+                        writer.close()
+                        await writer.wait_closed()
+                    except Exception as e:
+                        self.logger.debug(f"Sync with {peer} failed: {e}")
 
     async def broadcast_transaction(self, transaction: Transaction) -> None:
         """Broadcast transaction to all connected peers."""
