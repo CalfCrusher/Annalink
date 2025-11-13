@@ -155,8 +155,21 @@ class BlockchainNode:
     async def handle_blocks(self, data: Dict[str, Any]) -> None:
         """Handle received blocks."""
         blocks_data = data.get('blocks', [])
-        for block_data in blocks_data:
-            block = Block.from_dict(block_data)
+        if not blocks_data:
+            return
+        
+        # Convert to Block objects
+        received_blocks = [Block.from_dict(block_data) for block_data in blocks_data]
+        
+        # If we received multiple blocks, try chain replacement
+        if len(received_blocks) > 1:
+            # Build potential new chain
+            new_chain = self.blockchain.chain[:received_blocks[0].index] + received_blocks
+            if self.blockchain.replace_chain(new_chain):
+                self.logger.info(f"Chain replaced with {len(new_chain)} blocks")
+        else:
+            # Single block, try to add normally
+            block = received_blocks[0]
             if self.blockchain.add_block(block):
                 self.logger.info(f"Added block {block.index} from peer")
 

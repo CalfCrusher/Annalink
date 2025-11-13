@@ -128,13 +128,50 @@ class Blockchain:
 
     def add_block(self, block: Block) -> bool:
         """Add a block to the chain if valid."""
-        if block.is_valid(self.get_latest_block()):
-            self.chain.append(block)
-            self.db.save_block(block)
-            self.logger.info(f"Block {block.index} added to chain")
-            return True
+        # Check if block index is next in sequence
+        if block.index == len(self.chain):
+            if block.is_valid(self.get_latest_block()):
+                self.chain.append(block)
+                self.db.save_block(block)
+                self.logger.info(f"Block {block.index} added to chain")
+                return True
+        # Check if block already exists
+        elif block.index < len(self.chain):
+            self.logger.debug(f"Block {block.index} already exists")
+            return False
+        # Block is from future - might need to sync
+        else:
+            self.logger.debug(f"Block {block.index} is ahead of chain (current: {len(self.chain)-1})")
+            return False
+        
         self.logger.warning(f"Invalid block rejected: {block.index}")
         return False
+
+    def replace_chain(self, new_chain: List[Block]) -> bool:
+        """Replace the current chain if the new chain is longer and valid."""
+        if len(new_chain) <= len(self.chain):
+            self.logger.debug("Received chain is not longer than current chain")
+            return False
+        
+        # Validate new chain
+        for i in range(1, len(new_chain)):
+            if not new_chain[i].is_valid(new_chain[i-1]):
+                self.logger.warning("Received chain is invalid")
+                return False
+        
+        self.logger.info(f"Replacing chain (old: {len(self.chain)}, new: {len(new_chain)})")
+        
+        # Clear current chain from database
+        self.db.clear_all_blocks()
+        
+        # Replace chain
+        self.chain = new_chain
+        
+        # Save all blocks
+        for block in new_chain:
+            self.db.save_block(block)
+        
+        return True
 
     def is_chain_valid(self) -> bool:
         """Validate the entire blockchain."""

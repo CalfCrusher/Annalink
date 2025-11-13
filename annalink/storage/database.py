@@ -158,6 +158,13 @@ class BlockchainDatabase:
         cursor.execute('SELECT COUNT(*) FROM blocks')
         return cursor.fetchone()[0]
 
+    def clear_all_blocks(self) -> None:
+        """Delete all blocks from database."""
+        cursor = self.conn.cursor()
+        cursor.execute('DELETE FROM transactions')
+        cursor.execute('DELETE FROM blocks')
+        self.conn.commit()
+
     def close(self) -> None:
         """Close database connection."""
         if self.conn:
