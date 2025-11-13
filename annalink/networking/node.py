@@ -112,10 +112,10 @@ class BlockchainNode:
 
                 elif msg_type == MessageType.GET_BLOCKS:
                     start_height = data.get('start_height', 0)
-                    end_height = min(start_height + 100, len(self.blockchain.chain))
-                    blocks = self.blockchain.chain[start_height:end_height]
+                    # Send all blocks from start_height onwards (up to 100)
+                    blocks = self.blockchain.chain[start_height:start_height + 100]
 
-                    self.logger.info(f"Sending {len(blocks)} blocks to {peer_addr[0]}")
+                    self.logger.info(f"Sending {len(blocks)} blocks (indices {start_height}-{start_height + len(blocks) - 1}) to {peer_addr[0]}")
                     
                     response = {
                         'type': MessageType.BLOCKS,
