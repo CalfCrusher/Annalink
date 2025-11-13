@@ -184,6 +184,16 @@ class BlockchainNode:
                             return True
                         else:
                             self.logger.warning("✗ Chain replacement failed - invalid chain")
+                    # Try to add new blocks if same length but has newer blocks
+                    elif len(received_blocks) == len(self.blockchain.chain):
+                        # Check if we need any blocks
+                        added = False
+                        for block in received_blocks:
+                            if block.index >= len(self.blockchain.chain):
+                                if self.blockchain.add_block(block):
+                                    self.logger.info(f"✓ Added new block {block.index}")
+                                    added = True
+                        return added
                     else:
                         self.logger.debug(f"Peer chain not longer ({len(received_blocks)} vs {len(self.blockchain.chain)})")
 
