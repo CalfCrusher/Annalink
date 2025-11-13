@@ -88,13 +88,20 @@ class BlockchainNode:
 
         try:
             while True:
-                data = await reader.read(1024)
+                # Read length prefix (4 bytes)
+                length_bytes = await reader.readexactly(4)
+                length = int.from_bytes(length_bytes, 'big')
+                
+                # Read exact message length
+                data = await reader.readexactly(length)
                 if not data:
                     break
 
                 message = json.loads(data.decode())
                 await self.handle_message(message, writer)
 
+        except asyncio.IncompleteReadError:
+            self.logger.debug("Connection closed by peer")
         except Exception as e:
             self.logger.error(f"Error handling connection: {e}")
         finally:
@@ -217,6 +224,9 @@ class BlockchainNode:
                           writer: asyncio.StreamWriter) -> None:
         """Send message to peer."""
         data = json.dumps(message).encode()
+        # Send length prefix first (4 bytes)
+        length = len(data)
+        writer.write(length.to_bytes(4, 'big'))
         writer.write(data)
         await writer.drain()
 
@@ -282,8 +292,12 @@ class BlockchainNode:
                         self.logger.info(f"Requesting full chain from {peer} (our height: {len(self.blockchain.chain)-1})")
                         await self.send_message(request, writer)
                         
-                        # Wait for response
-                        data = await asyncio.wait_for(reader.read(10240000), timeout=10.0)
+                        # Read length prefix
+                        length_bytes = await asyncio.wait_for(reader.readexactly(4), timeout=10.0)
+                        length = int.from_bytes(length_bytes, 'big')
+                        
+                        # Read exact message length
+                        data = await asyncio.wait_for(reader.readexactly(length), timeout=30.0)
                         if data:
                             response = json.loads(data.decode())
                             await self.handle_message(response, writer)
