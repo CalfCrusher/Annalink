@@ -126,6 +126,19 @@ def start_node(args) -> None:
 
     async def run_node():
         await node.start()
+        
+        # Connect to peer if specified
+        if args.peer:
+            from ..networking.peer import Peer
+            try:
+                peer_host, peer_port = args.peer.split(':')
+                peer = Peer(peer_host, int(peer_port))
+                print(f"Connecting to peer {peer}...")
+                await node.connect_to_peer(peer)
+                print(f"Connected to peer {peer}")
+            except Exception as e:
+                print(f"Failed to connect to peer: {e}")
+        
         try:
             while True:
                 await asyncio.sleep(1)
@@ -171,6 +184,7 @@ def main() -> None:
     node_parser = subparsers.add_parser('node', help='Start blockchain node')
     node_parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
     node_parser.add_argument('--port', type=int, default=8333, help='Port to bind to (default: 8333)')
+    node_parser.add_argument('--peer', help='Peer to connect to (format: host:port)')
     node_parser.set_defaults(func=start_node)
 
     args = parser.parse_args()
