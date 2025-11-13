@@ -1,3 +1,5 @@
+![Annalink Logo](annalink.png)
+
 # Annalink Blockchain
 
 A production-ready custom blockchain implementation built from scratch.
