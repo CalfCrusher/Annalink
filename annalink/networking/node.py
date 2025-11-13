@@ -90,6 +90,11 @@ class BlockchainNode:
         """Handle incoming connection from a peer."""
         peer_addr = writer.get_extra_info('peername')
         self.logger.info(f"Incoming connection from {peer_addr[0]}:{peer_addr[1]}")
+        
+        # Add this peer so we can sync from them later
+        peer = Peer(peer_addr[0], peer_addr[1])
+        self.peer_manager.add_peer(peer)
+        self.peer_manager.update_peer_status(peer, True)
 
         try:
             while True:
@@ -128,6 +133,9 @@ class BlockchainNode:
         except Exception as e:
             self.logger.debug(f"Connection handler error: {e}")
         finally:
+            # Mark peer as disconnected but keep in peer list for future sync
+            if 'peer' in locals():
+                self.peer_manager.update_peer_status(peer, False)
             writer.close()
             await writer.wait_closed()
 
