@@ -142,8 +142,11 @@ class BlockchainNode:
                                writer: asyncio.StreamWriter) -> None:
         """Handle get blocks request."""
         start_height = data.get('start_height', 0)
-        blocks = self.blockchain.chain[start_height:start_height + 50]  # Limit to 50 blocks
+        end_height = min(start_height + 100, len(self.blockchain.chain))  # Send up to 100 blocks
+        blocks = self.blockchain.chain[start_height:end_height]
 
+        self.logger.info(f"Sending {len(blocks)} blocks (from {start_height} to {end_height-1})")
+        
         response = {
             'type': MessageType.BLOCKS,
             'data': {
@@ -164,34 +167,17 @@ class BlockchainNode:
         
         self.logger.info(f"Received {len(received_blocks)} blocks (indices {received_blocks[0].index}-{received_blocks[-1].index})")
         
-        # If we received multiple blocks and they extend our chain
-        if len(received_blocks) > 0:
-            first_block_index = received_blocks[0].index
-            
-            # If these blocks would extend our current chain
-            if first_block_index >= len(self.blockchain.chain):
-                # Try adding them sequentially
-                for block in received_blocks:
-                    if not self.blockchain.add_block(block):
-                        self.logger.warning(f"Failed to add block {block.index}")
-                        break
-            # If we received blocks that overlap with our chain, try chain replacement
-            elif first_block_index < len(self.blockchain.chain) and len(received_blocks) > 1:
-                # Build the complete new chain: our existing blocks + received blocks
-                last_received_index = received_blocks[-1].index
-                if last_received_index >= len(self.blockchain.chain):
-                    # The received chain is longer, try to replace
-                    new_chain = self.blockchain.chain[:first_block_index] + received_blocks
-                    if self.blockchain.replace_chain(new_chain):
-                        self.logger.info(f"Chain replaced with {len(new_chain)} blocks")
-                    else:
-                        self.logger.warning("Failed to replace chain")
+        # If received chain is longer than ours, replace it
+        if len(received_blocks) > len(self.blockchain.chain):
+            self.logger.info(f"Received longer chain ({len(received_blocks)} vs {len(self.blockchain.chain)})")
+            if self.blockchain.replace_chain(received_blocks):
+                self.logger.info(f"Chain replaced successfully with {len(received_blocks)} blocks")
             else:
-                # Single block or blocks we already have
-                for block in received_blocks:
-                    if block.index >= len(self.blockchain.chain):
-                        if self.blockchain.add_block(block):
-                            self.logger.info(f"Added block {block.index} from peer")
+                self.logger.warning("Chain replacement failed - received chain is invalid")
+        elif len(received_blocks) == len(self.blockchain.chain):
+            self.logger.debug("Received chain same length as ours")
+        else:
+            self.logger.debug(f"Received chain is shorter ({len(received_blocks)} vs {len(self.blockchain.chain)})")
 
     async def handle_new_transaction(self, data: Dict[str, Any]) -> None:
         """Handle new transaction."""
@@ -286,18 +272,18 @@ class BlockchainNode:
                     try:
                         reader, writer = await asyncio.open_connection(peer.host, peer.port)
                         
-                        # Request blocks starting from our current height
+                        # Request ALL blocks from genesis - we'll replace chain if longer
                         request = {
                             'type': MessageType.GET_BLOCKS,
                             'data': {
-                                'start_height': len(self.blockchain.chain)
+                                'start_height': 0
                             }
                         }
-                        self.logger.info(f"Requesting blocks from {peer} starting at height {len(self.blockchain.chain)}")
+                        self.logger.info(f"Requesting full chain from {peer} (our height: {len(self.blockchain.chain)-1})")
                         await self.send_message(request, writer)
                         
                         # Wait for response
-                        data = await asyncio.wait_for(reader.read(1024000), timeout=5.0)
+                        data = await asyncio.wait_for(reader.read(10240000), timeout=10.0)
                         if data:
                             response = json.loads(data.decode())
                             await self.handle_message(response, writer)
@@ -305,7 +291,7 @@ class BlockchainNode:
                         writer.close()
                         await writer.wait_closed()
                     except Exception as e:
-                        self.logger.debug(f"Sync with {peer} failed: {e}")
+                        self.logger.error(f"Sync with {peer} failed: {e}")
 
     async def broadcast_transaction(self, transaction: Transaction) -> None:
         """Broadcast transaction to all connected peers."""
