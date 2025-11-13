@@ -141,10 +141,8 @@ class BlockchainNode:
         except Exception as e:
             self.logger.debug(f"Connection handler error: {e}")
         finally:
-            # Mark peer as disconnected but keep in peer list for future sync
-            if peer_port:
-                peer = Peer(peer_host, peer_port)
-                self.peer_manager.update_peer_status(peer, False)
+            # Keep peer in list but don't mark as disconnected
+            # The peer is still valid for future sync attempts
             writer.close()
             await writer.wait_closed()
 
@@ -216,9 +214,13 @@ class BlockchainNode:
 
         except asyncio.TimeoutError:
             self.logger.error(f"Timeout connecting to {peer}")
+            # Mark peer as disconnected since we can't reach them
+            self.peer_manager.update_peer_status(peer, False)
             return False
         except Exception as e:
             self.logger.error(f"Error syncing with {peer}: {e}")
+            # Mark peer as disconnected on error
+            self.peer_manager.update_peer_status(peer, False)
             return False
 
     async def connect_to_peer(self, peer: Peer) -> None:
